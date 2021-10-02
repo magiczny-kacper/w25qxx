@@ -1,4 +1,4 @@
-#include "mem->h"
+#include "w25qxx.h"
 
 #if (_W25QXX_DEBUG == 1)
 #include <stdio.h>
@@ -52,14 +52,14 @@ static void W25qxx_WriteDisable(w25qxx_t *mem);
 static uint8_t W25qxx_ReadStatusRegister(w25qxx_t *mem, W25QXX_StatusRegisters_t register);
 static void W25qxx_WriteStatusRegister(w25qxx_t *mem, W25QXX_StatusRegisters_t register, uint8_t status);
 static void W25qxx_WaitForWriteEnd(w25qxx_t *mem);
+static void W25qxx_WaitLock(w25qxx_t *mem);
 
 //###################################################################################################################
 bool W25qxx_Init(w25qxx_t *mem)
 {
 	uint32_t id;
 	mem->Lock = 1;
-	while (HAL_GetTick() < 100)
-		W25qxx_Delay(1);
+	W25qxx_Delay(1);
 	MEM_DESELECT(mem->cs_port, mem->cs_pin);
 	W25qxx_Delay(100);
 	
@@ -70,60 +70,60 @@ bool W25qxx_Init(w25qxx_t *mem)
 
 	switch (id & 0x000000FF)
 	{
-	case 0x20: // 	w25q512
-		mem->ID = W25Q512;
-		mem->BlockCount = 1024;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q512\r\n");
-		break;
-	case 0x19: // 	w25q256
-		mem->ID = W25Q256;
-		mem->BlockCount = 512;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q256\r\n");
-		break;
-	case 0x18: // 	w25q128
-		mem->ID = W25Q128;
-		mem->BlockCount = 256;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q128\r\n");
-		break;
-	case 0x17: //	w25q64
-		mem->ID = W25Q64;
-		mem->BlockCount = 128;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q64\r\n");
-		break;
-	case 0x16: //	w25q32
-		mem->ID = W25Q32;
-		mem->BlockCount = 64;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q32\r\n");
-		break;
-	case 0x15: //	w25q16
-		mem->ID = W25Q16;
-		mem->BlockCount = 32;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q16\r\n");
-		break;
-	case 0x14: //	w25q80
-		mem->ID = W25Q80;
-		mem->BlockCount = 16;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q80\r\n");
-		break;
-	case 0x13: //	w25q40
-		mem->ID = W25Q40;
-		mem->BlockCount = 8;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q40\r\n");
-		break;
-	case 0x12: //	w25q20
-		mem->ID = W25Q20;
-		mem->BlockCount = 4;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q20\r\n");
-		break;
-	case 0x11: //	w25q10
-		mem->ID = W25Q10;
-		mem->BlockCount = 2;
-		W25QXX_DBG_LOG("w25qxx Chip: w25q10\r\n");
-		break;
-	default:
-		W25QXX_DBG_LOG("w25qxx Unknown ID\r\n");
-		mem->Lock = 0;
-		return false;
+		case 0x20: // 	w25q512
+			mem->ID = W25Q512;
+			mem->BlockCount = 1024;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q512\r\n");
+			break;
+		case 0x19: // 	w25q256
+			mem->ID = W25Q256;
+			mem->BlockCount = 512;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q256\r\n");
+			break;
+		case 0x18: // 	w25q128
+			mem->ID = W25Q128;
+			mem->BlockCount = 256;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q128\r\n");
+			break;
+		case 0x17: //	w25q64
+			mem->ID = W25Q64;
+			mem->BlockCount = 128;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q64\r\n");
+			break;
+		case 0x16: //	w25q32
+			mem->ID = W25Q32;
+			mem->BlockCount = 64;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q32\r\n");
+			break;
+		case 0x15: //	w25q16
+			mem->ID = W25Q16;
+			mem->BlockCount = 32;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q16\r\n");
+			break;
+		case 0x14: //	w25q80
+			mem->ID = W25Q80;
+			mem->BlockCount = 16;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q80\r\n");
+			break;
+		case 0x13: //	w25q40
+			mem->ID = W25Q40;
+			mem->BlockCount = 8;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q40\r\n");
+			break;
+		case 0x12: //	w25q20
+			mem->ID = W25Q20;
+			mem->BlockCount = 4;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q20\r\n");
+			break;
+		case 0x11: //	w25q10
+			mem->ID = W25Q10;
+			mem->BlockCount = 2;
+			W25QXX_DBG_LOG("w25qxx Chip: w25q10\r\n");
+			break;
+		default:
+			W25QXX_DBG_LOG("w25qxx Unknown ID\r\n");
+			mem->Lock = 0;
+			return false;
 	}
 	mem->PageSize = 256;
 	mem->SectorSize = 0x1000;
@@ -131,10 +131,10 @@ bool W25qxx_Init(w25qxx_t *mem)
 	mem->PageCount = (mem->SectorCount * mem->SectorSize) / mem->PageSize;
 	mem->BlockSize = mem->SectorSize * 16;
 	mem->CapacityInKiloByte = (mem->SectorCount * mem->SectorSize) / 1024;
-	W25qxx_ReadUniqID();
-	W25qxx_ReadStatusRegister(1);
-	W25qxx_ReadStatusRegister(2);
-	W25qxx_ReadStatusRegister(3);
+	W25qxx_ReadUniqID(mem);
+	W25qxx_ReadStatusRegister(mem, STATUS_REGISTER_1);
+	W25qxx_ReadStatusRegister(mem, STATUS_REGISTER_2);
+	W25qxx_ReadStatusRegister(mem, STATUS_REGISTER_3);
 	W25QXX_DBG_LOG("w25qxx Page Size: %d Bytes\r\n", mem->PageSize);
 	W25QXX_DBG_LOG("w25qxx Page Count: %d\r\n", mem->PageCount);
 	W25QXX_DBG_LOG("w25qxx Sector Size: %d Bytes\r\n", mem->SectorSize);
@@ -149,87 +149,96 @@ bool W25qxx_Init(w25qxx_t *mem)
 //###################################################################################################################
 void W25qxx_EraseChip(w25qxx_t *mem)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	uint8_t cmd = 0xC7;
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 #if (_W25QXX_DEBUG == 1)
 	uint32_t StartTime = HAL_GetTick();
 	W25QXX_DBG_LOG("w25qxx EraseChip Begin...\r\n");
 #endif
-	W25qxx_WriteEnable();
+	W25qxx_WriteEnable(mem);
 	MEM_SELECT(mem->cs_port, mem->cs_pin);
-	W25qxx_Spi(0xC7);
+	spi_write(mem->spi, &cmd, 1);
 	MEM_DESELECT(mem->cs_port, mem->cs_pin);
-	W25qxx_WaitForWriteEnd();
-#if (_W25QXX_DEBUG == 1)
+	W25qxx_WaitForWriteEnd(mem);
 	W25QXX_DBG_LOG("w25qxx EraseBlock done after %d ms!\r\n", HAL_GetTick() - StartTime);
-#endif
 	W25qxx_Delay(10);
 	mem->Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_EraseSector(w25qxx_t *mem, uint32_t SectorAddr)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	uint8_t cmd[5] = {0};
+	uint8_t cmd_len = 0;
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 #if (_W25QXX_DEBUG == 1)
 	uint32_t StartTime = HAL_GetTick();
 	W25QXX_DBG_LOG("w25qxx EraseSector %d Begin...\r\n", SectorAddr);
 #endif
-	W25qxx_WaitForWriteEnd();
+	W25qxx_WaitForWriteEnd(mem);
 	SectorAddr = SectorAddr * mem->SectorSize;
-	W25qxx_WriteEnable();
+	W25qxx_WriteEnable(mem);
+	if (mem->ID >= W25Q256){
+		cmd[cmd_len] = 0x21;
+		cmd_len ++;
+		cmd[cmd_len] = (SectorAddr & 0xFF000000) >> 24;
+		cmd_len ++;
+	}else{
+		cmd[cmd_len] = 0x20;
+		cmd_len ++;
+	}
+	cmd[cmd_len] = (SectorAddr & 0xFF0000) >> 16;
+	cmd_len ++;
+	cmd[cmd_len] = (SectorAddr & 0xFF00) >> 8;
+	cmd_len ++;
+	cmd[cmd_len] = (SectorAddr & 0xFF);
+	cmd_len ++;
+
 	MEM_SELECT(mem->cs_port, mem->cs_pin);
-	if (mem->ID >= W25Q256)
-	{
-		W25qxx_Spi(0x21);
-		W25qxx_Spi((SectorAddr & 0xFF000000) >> 24);
-	}
-	else
-	{
-		W25qxx_Spi(0x20);
-	}
-	W25qxx_Spi((SectorAddr & 0xFF0000) >> 16);
-	W25qxx_Spi((SectorAddr & 0xFF00) >> 8);
-	W25qxx_Spi(SectorAddr & 0xFF);
+	spi_write(mem->spi, cmd, cmd_len);
 	MEM_DESELECT(mem->cs_port, mem->cs_pin);
-	W25qxx_WaitForWriteEnd();
-#if (_W25QXX_DEBUG == 1)
+
+	W25qxx_WaitForWriteEnd(mem);
 	W25QXX_DBG_LOG("w25qxx EraseSector done after %d ms\r\n", HAL_GetTick() - StartTime);
-#endif
 	W25qxx_Delay(1);
 	mem->Lock = 0;
 }
 //###################################################################################################################
 void W25qxx_EraseBlock(w25qxx_t *mem, uint32_t BlockAddr)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	uint8_t cmd[5] = {0};
+	uint8_t cmd_len = 0;
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 #if (_W25QXX_DEBUG == 1)
-	W25QXX_DBG_LOG("w25qxx EraseBlock %d Begin...\r\n", BlockAddr);
-	W25qxx_Delay(100);
 	uint32_t StartTime = HAL_GetTick();
+	W25QXX_DBG_LOG("w25qxx EraseSector %d Begin...\r\n", SectorAddr);
 #endif
-	W25qxx_WaitForWriteEnd();
-	BlockAddr = BlockAddr * mem->SectorSize * 16;
-	W25qxx_WriteEnable();
+	W25qxx_WaitForWriteEnd(mem);
+	BlockAddr = BlockAddr * mem->SectorSize;
+	W25qxx_WriteEnable(mem);
+	if (mem->ID >= W25Q256){
+		cmd[cmd_len] = 0x21;
+		cmd_len ++;
+		cmd[cmd_len] = (BlockAddr & 0xFF000000) >> 24;
+		cmd_len ++;
+	}else{
+		cmd[cmd_len] = 0xD8;
+		cmd_len ++;
+	}
+	cmd[cmd_len] = (BlockAddr & 0xFF0000) >> 16;
+	cmd_len ++;
+	cmd[cmd_len] = (BlockAddr & 0xFF00) >> 8;
+	cmd_len ++;
+	cmd[cmd_len] = (BlockAddr & 0xFF);
+	cmd_len ++;
+
 	MEM_SELECT(mem->cs_port, mem->cs_pin);
-	if (mem->ID >= W25Q256)
-	{
-		W25qxx_Spi(0xDC);
-		W25qxx_Spi((BlockAddr & 0xFF000000) >> 24);
-	}
-	else
-	{
-		W25qxx_Spi(0xD8);
-	}
-	W25qxx_Spi((BlockAddr & 0xFF0000) >> 16);
-	W25qxx_Spi((BlockAddr & 0xFF00) >> 8);
-	W25qxx_Spi(BlockAddr & 0xFF);
+	spi_write(mem->spi, cmd, cmd_len);
 	MEM_DESELECT(mem->cs_port, mem->cs_pin);
-	W25qxx_WaitForWriteEnd();
+
+	W25qxx_WaitForWriteEnd(mem);
 #if (_W25QXX_DEBUG == 1)
 	W25QXX_DBG_LOG("w25qxx EraseBlock done after %d ms\r\n", HAL_GetTick() - StartTime);
 	W25qxx_Delay(100);
@@ -265,8 +274,7 @@ uint32_t W25qxx_BlockToPage(w25qxx_t *mem, uint32_t BlockAddress)
 //###################################################################################################################
 bool W25qxx_IsEmptyPage(w25qxx_t *mem, uint32_t Page_Address, uint32_t OffsetInByte, uint32_t NumByteToCheck_up_to_PageSize)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 	if (((NumByteToCheck_up_to_PageSize + OffsetInByte) > mem->PageSize) || (NumByteToCheck_up_to_PageSize == 0))
 		NumByteToCheck_up_to_PageSize = mem->PageSize - OffsetInByte;
@@ -347,8 +355,7 @@ NOT_EMPTY:
 //###################################################################################################################
 bool W25qxx_IsEmptySector(w25qxx_t *mem, uint32_t Sector_Address, uint32_t OffsetInByte, uint32_t NumByteToCheck_up_to_SectorSize)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 	if ((NumByteToCheck_up_to_SectorSize > mem->SectorSize) || (NumByteToCheck_up_to_SectorSize == 0))
 		NumByteToCheck_up_to_SectorSize = mem->SectorSize;
@@ -429,8 +436,7 @@ NOT_EMPTY:
 //###################################################################################################################
 bool W25qxx_IsEmptyBlock(w25qxx_t *mem, uint32_t Block_Address, uint32_t OffsetInByte, uint32_t NumByteToCheck_up_to_BlockSize)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 	if ((NumByteToCheck_up_to_BlockSize > mem->BlockSize) || (NumByteToCheck_up_to_BlockSize == 0))
 		NumByteToCheck_up_to_BlockSize = mem->BlockSize;
@@ -512,8 +518,7 @@ NOT_EMPTY:
 //###################################################################################################################
 void W25qxx_WriteByte(w25qxx_t *mem, uint8_t pBuffer, uint32_t WriteAddr_inBytes)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 #if (_W25QXX_DEBUG == 1)
 	uint32_t StartTime = HAL_GetTick();
@@ -546,8 +551,7 @@ void W25qxx_WriteByte(w25qxx_t *mem, uint8_t pBuffer, uint32_t WriteAddr_inBytes
 //###################################################################################################################
 void W25qxx_WritePage(w25qxx_t *mem, uint8_t *pBuffer, uint32_t Page_Address, uint32_t OffsetInByte, uint32_t NumByteToWrite_up_to_PageSize)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 	if (((NumByteToWrite_up_to_PageSize + OffsetInByte) > mem->PageSize) || (NumByteToWrite_up_to_PageSize == 0))
 		NumByteToWrite_up_to_PageSize = mem->PageSize - OffsetInByte;
@@ -676,8 +680,7 @@ void W25qxx_WriteBlock(w25qxx_t *mem, uint8_t *pBuffer, uint32_t Block_Address, 
 //###################################################################################################################
 void W25qxx_ReadByte(w25qxx_t *mem, uint8_t *pBuffer, uint32_t Bytes_Address)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 #if (_W25QXX_DEBUG == 1)
 	uint32_t StartTime = HAL_GetTick();
@@ -708,8 +711,7 @@ void W25qxx_ReadByte(w25qxx_t *mem, uint8_t *pBuffer, uint32_t Bytes_Address)
 //###################################################################################################################
 void W25qxx_ReadBytes(w25qxx_t *mem, uint8_t *pBuffer, uint32_t ReadAddr, uint32_t NumByteToRead)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 #if (_W25QXX_DEBUG == 1)
 	uint32_t StartTime = HAL_GetTick();
@@ -753,8 +755,7 @@ void W25qxx_ReadBytes(w25qxx_t *mem, uint8_t *pBuffer, uint32_t ReadAddr, uint32
 //###################################################################################################################
 void W25qxx_ReadPage(w25qxx_t *mem, uint8_t *pBuffer, uint32_t Page_Address, uint32_t OffsetInByte, uint32_t NumByteToRead_up_to_PageSize)
 {
-	while (mem->Lock == 1)
-		W25qxx_Delay(1);
+	W25qxx_WaitLock(mem);
 	mem->Lock = 1;
 	if ((NumByteToRead_up_to_PageSize > mem->PageSize) || (NumByteToRead_up_to_PageSize == 0))
 		NumByteToRead_up_to_PageSize = mem->PageSize;
@@ -878,15 +879,7 @@ void W25qxx_ReadBlock(w25qxx_t *mem, uint8_t *pBuffer, uint32_t Block_Address, u
 	W25qxx_Delay(100);
 #endif
 }
-//###################################################################################################################
 
-//###################################################################################################################
-uint8_t W25qxx_Spi(w25qxx_t *mem, uint8_t Data)
-{
-	uint8_t ret;
-	HAL_SPI_TransmitReceive(&_W25QXX_SPI, &Data, &ret, 1, 100);
-	return ret;
-}
 //###################################################################################################################
 static uint32_t W25qxx_ReadID(w25qxx_t *mem)
 {
@@ -997,6 +990,12 @@ static void W25qxx_WaitForWriteEnd(w25qxx_t *mem)
 		if(0 == status.BUSY){
 			break;
 		}
+		W25qxx_Delay(1);
+	}
+}
+
+static void W25qxx_WaitLock(w25qxx_t *mem){
+	while(1 == mem->Lock){
 		W25qxx_Delay(1);
 	}
 }
