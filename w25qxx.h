@@ -32,11 +32,11 @@
 extern "C"
 {
 #endif
-
+#include <stdint.h>
 #include <stdbool.h>
 #include "w25qxxConf.h"
 
-typedef enum
+typedef enum W25QXX_ID
 {
 	W25Q10 = 1,
 	W25Q20,
@@ -50,7 +50,7 @@ typedef enum
 	W25Q512,
 } W25QXX_ID_t;
 
-typedef struct
+typedef struct w25qxx
 {
 	W25QXX_ID_t ID;
 	uint8_t UniqID[8];
@@ -61,9 +61,7 @@ typedef struct
 	uint32_t BlockSize;
 	uint32_t BlockCount;
 	uint32_t CapacityInKiloByte;
-	uint8_t StatusRegister1;
-	uint8_t StatusRegister2;
-	uint8_t StatusRegister3;
+	uint8_t StatusRegisters[3];
 	uint8_t Lock;
 	port_t cs_port;
 	pin_t cs_pin;
