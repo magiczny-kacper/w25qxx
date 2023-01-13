@@ -1,5 +1,5 @@
-#ifndef _W25QXXCONFIG_H
-#define _W25QXXCONFIG_H
+#ifndef W25QXXCONF_H_
+#define W25QXXCONF_H_
 
 #include <stdint.h>
 
@@ -26,4 +26,4 @@ void spi_write_read(spi_t spi, uint8_t* tx_buffer, uint8_t* rx_buffer, size_t si
 
 void spi_write_then_read(spi_t spi, uint8_t* tx_buffer, size_t tx_size, uint8_t* rx_buffer, size_t rx_size);
 
-#endif
+#endif /* W25QXXCONF_H_ */
