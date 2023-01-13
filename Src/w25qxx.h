@@ -1,5 +1,5 @@
-#ifndef _W25QXX_H
-#define _W25QXX_H
+#ifndef W25QXX_H_
+#define W25QXX_H_
 
 /*
   Author:     Nima Askari, Kacper Brzostowski
@@ -26,10 +26,6 @@
   First release.
 */
 
-#ifdef __cplusplus
-extern "C"
-{
-#endif
 #include <stdint.h>
 #include <stdbool.h>
 #include "w25qxxConf.h"
@@ -278,8 +274,4 @@ void W25qxx_ReadSector (w25qxx_t *mem, uint8_t *pBuffer, uint32_t Sector_Address
  */
 void W25qxx_ReadBlock (w25qxx_t *mem, uint8_t *pBuffer, uint32_t Block_Address, uint32_t OffsetInByte, uint32_t NumByteToRead_up_to_BlockSize);
 
-#ifdef __cplusplus
-}
-#endif
-
-#endif
+#endif /* W25QXX_H_ */
