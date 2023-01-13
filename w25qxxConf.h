@@ -9,7 +9,7 @@
 
 #define _W25QXX_SPI                   hspi1
 #define _W25QXX_USE_FREERTOS          1
-#define _W25QXX_DEBUG                 0
+// #define _W25QXX_DEBUG
 
 #define port_t uint8_t
 #define pin_t uint8_t

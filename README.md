@@ -1,7 +1,4 @@
-## W25QXX SPI FLASH Library for STM32
-* http://www.github.com/NimaLTD   
-* https://www.instagram.com/github.nimaltd/   
-* https://www.youtube.com/channel/UCUhY7qY1klJm1d2kulr9ckw   
+## W25QXX SPI FLASH Library for STM32 
 
 * Enable SPI and a Gpio as output(CS pin).Connect WP and HOLD to VCC.
 * Select software CS pin.
